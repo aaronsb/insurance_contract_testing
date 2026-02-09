@@ -1,4 +1,5 @@
 from policy.models import Policy
-from policy.green_cross import green_cross_policy
+from policy.regulations import RegulatoryRegistry
+from policy.green_cross import green_cross_policy, registry
 
-__all__ = ["Policy", "green_cross_policy"]
+__all__ = ["Policy", "RegulatoryRegistry", "green_cross_policy", "registry"]

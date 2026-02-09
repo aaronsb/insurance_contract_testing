@@ -6,12 +6,12 @@ Tests assert against this data to verify platform compliance.
 
 from datetime import date
 from decimal import Decimal
+from pathlib import Path
 
 from policy.models import (
     AccumulatorAdjustment,
     AmbulanceBenefit,
     AppealsLevel,
-    BasePolicy,
     ClaimsAndAppeals,
     COBRule,
     CorrespondenceRules,
@@ -47,7 +47,6 @@ from policy.models import (
     PreventiveToDiagnosticRule,
     PriorAuthorization,
     PriorAuthPenalty,
-    RegulatoryReference,
     RehabBenefits,
     RxTier,
     ServiceBenefit,
@@ -59,90 +58,15 @@ from policy.models import (
     VisionHardware,
     VisitLimit,
 )
+from policy.regulations import RegulatoryRegistry
 
 
 # ---------------------------------------------------------------------------
-# Foundational policies (statutes / regulations this plan must comply with)
+# Load regulatory references from JSONL
 # ---------------------------------------------------------------------------
 
-_base_policies = [
-    BasePolicy(
-        id="ACA",
-        name="Affordable Care Act",
-        description="Preventive care coverage requirements, essential health benefits, OOP max limits",
-        references=[
-            RegulatoryReference(
-                statute="Patient Protection and Affordable Care Act",
-                citation="42 USC § 18001 et seq.",
-                cfr="45 CFR § 147.130",
-                effective_date=date(2010, 3, 23),
-            ),
-        ],
-    ),
-    BasePolicy(
-        id="MHPAEA",
-        name="Mental Health Parity and Addiction Equity Act",
-        description="Mental health and substance use benefits must be at parity with medical/surgical",
-        references=[
-            RegulatoryReference(
-                statute="Mental Health Parity and Addiction Equity Act",
-                citation="29 USC § 1185a",
-                cfr="45 CFR § 146.136",
-                effective_date=date(2008, 10, 3),
-            ),
-        ],
-    ),
-    BasePolicy(
-        id="NSA",
-        name="No Surprises Act",
-        description="Surprise billing protections for emergency and certain non-emergency services",
-        references=[
-            RegulatoryReference(
-                statute="No Surprises Act",
-                citation="Public Law 116-260, Division BB, Title I",
-                cfr="45 CFR Part 149",
-                effective_date=date(2022, 1, 1),
-            ),
-        ],
-    ),
-    BasePolicy(
-        id="NMHPA",
-        name="Newborns' and Mothers' Health Protection Act",
-        description="Minimum hospital stay requirements for childbirth",
-        references=[
-            RegulatoryReference(
-                statute="Newborns' and Mothers' Health Protection Act",
-                citation="29 USC § 1185",
-                effective_date=date(1998, 1, 1),
-            ),
-        ],
-    ),
-    BasePolicy(
-        id="COBRA",
-        name="Consolidated Omnibus Budget Reconciliation Act",
-        description="Continuation of coverage after qualifying events",
-        references=[
-            RegulatoryReference(
-                statute="COBRA",
-                citation="29 USC § 1161-1168",
-                effective_date=date(1986, 4, 7),
-            ),
-        ],
-    ),
-    BasePolicy(
-        id="ERISA",
-        name="Employee Retirement Income Security Act",
-        description="Claims and appeals process requirements",
-        references=[
-            RegulatoryReference(
-                statute="ERISA",
-                citation="29 USC § 1001 et seq.",
-                cfr="29 CFR § 2560.503-1",
-                effective_date=date(1974, 9, 2),
-            ),
-        ],
-    ),
-]
+_REGULATIONS_PATH = Path(__file__).parent.parent / "regulations" / "base_policies.jsonl"
+registry = RegulatoryRegistry.from_jsonl(_REGULATIONS_PATH)
 
 
 # ---------------------------------------------------------------------------
@@ -158,7 +82,7 @@ green_cross_policy = Policy(
     plan_year_end=date(2025, 12, 31),
     plan_type=PlanType.PPO,
     sbc_version="2025-R3",
-    base_policies=_base_policies,
+    base_policies=registry.all(),
 
     # ------------------------------------------------------------------
     # Deductibles  (§1)
@@ -208,7 +132,7 @@ green_cross_policy = Policy(
     # Preventive care  (§4)
     # ------------------------------------------------------------------
     preventive_care=PreventiveCare(
-        base_policies=["ACA"],
+        base_policies=registry.statutes_for("preventive_care"),
         services=[
             PreventiveService(
                 name="annual_physical",
@@ -340,7 +264,7 @@ green_cross_policy = Policy(
     # Emergency care  (§6)
     # ------------------------------------------------------------------
     emergency=EmergencyCare(
-        base_policies=["NSA"],
+        base_policies=registry.statutes_for("emergency"),
         er=ERBenefit(
             facility_copay=Decimal("350"),
             facility_coinsurance=Decimal("0.20"),
@@ -371,7 +295,7 @@ green_cross_policy = Policy(
     # Inpatient care  (§7)
     # ------------------------------------------------------------------
     inpatient=InpatientCare(
-        base_policies=["NMHPA"],
+        base_policies=registry.statutes_for("inpatient"),
         in_network=InpatientCostShare(
             facility_copay=Decimal("500"),
             facility_coinsurance=Decimal("0.20"),
@@ -405,7 +329,7 @@ green_cross_policy = Policy(
     # Mental health  (§8)
     # ------------------------------------------------------------------
     mental_health=MentalHealthBenefits(
-        base_policies=["MHPAEA"],
+        base_policies=registry.statutes_for("mental_health"),
         outpatient_individual=ServiceBenefit(
             name="individual_therapy",
             in_network=CostShare(copay=Decimal("30"), subject_to_deductible=False),

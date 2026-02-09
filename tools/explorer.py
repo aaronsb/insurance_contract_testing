@@ -12,7 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
-from policy.green_cross import green_cross_policy
+from policy.green_cross import green_cross_policy, registry
 
 
 def extract_test_info():
@@ -120,50 +120,39 @@ def build_graph():
             "group": "statute",
         })
 
-    # --- section nodes ---
+    # --- section nodes + governs edges (driven by registry) ---
     sections = [
-        ("deductibles", "Deductibles", []),
-        ("oop_max", "OOP Maximum", []),
-        ("preventive_care", "Preventive Care", p.preventive_care.base_policies),
-        ("primary_care", "Primary Care", []),
-        ("specialist_care", "Specialist Care", []),
-        ("emergency", "Emergency", p.emergency.base_policies),
-        ("inpatient", "Inpatient", p.inpatient.base_policies),
-        ("mental_health", "Mental Health", p.mental_health.base_policies),
-        ("pharmacy", "Pharmacy", []),
-        ("dental", "Dental", []),
-        ("vision", "Vision", []),
-        ("rehab", "Rehab", []),
-        ("prior_authorization", "Prior Auth", []),
-        ("correspondence", "Correspondence", []),
-        ("claims_and_appeals", "Claims & Appeals", []),
-        ("special_provisions", "Special Provisions", []),
+        ("deductibles", "Deductibles"),
+        ("oop_max", "OOP Maximum"),
+        ("preventive_care", "Preventive Care"),
+        ("primary_care", "Primary Care"),
+        ("specialist_care", "Specialist Care"),
+        ("emergency", "Emergency"),
+        ("inpatient", "Inpatient"),
+        ("mental_health", "Mental Health"),
+        ("pharmacy", "Pharmacy"),
+        ("dental", "Dental"),
+        ("vision", "Vision"),
+        ("rehab", "Rehab"),
+        ("prior_authorization", "Prior Auth"),
+        ("correspondence", "Correspondence"),
+        ("claims_and_appeals", "Claims & Appeals"),
+        ("special_provisions", "Special Provisions"),
     ]
 
-    for sec_id, label, base_pols in sections:
+    for sec_id, label in sections:
         nodes.append({
             "id": f"section_{sec_id}",
             "label": label,
             "type": "section",
             "group": "section",
         })
-        for bp_id in base_pols:
+        for statute_id in registry.statutes_for(sec_id):
             edges.append({
-                "from": f"statute_{bp_id}",
+                "from": f"statute_{statute_id}",
                 "to": f"section_{sec_id}",
                 "type": "governs",
             })
-
-    # implicit statute→section links
-    implicit = [
-        ("ACA", "preventive_care"), ("ACA", "oop_max"),
-        ("ERISA", "claims_and_appeals"), ("COBRA", "special_provisions"),
-    ]
-    existing = {(e["from"], e["to"]) for e in edges}
-    for stat, sec in implicit:
-        key = (f"statute_{stat}", f"section_{sec}")
-        if key not in existing:
-            edges.append({"from": key[0], "to": key[1], "type": "governs"})
 
     # --- test nodes ---
     for tc in extract_test_info():

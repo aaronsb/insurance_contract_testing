@@ -24,15 +24,17 @@ Unit tests that audit health insurance policy contracts against their source ter
 The policy contract document (`contracts/green-cross-policy.md`) is the source of truth. It's modeled as typed Pydantic models (`policy/models.py`), instantiated with actual contract values (`policy/green_cross.py`), and verified by risk-annotated pytest assertions.
 
 ```
-contracts/green-cross-policy.md    ← source document
+contracts/green-cross-policy.md       ← source document
+regulations/base_policies.jsonl       ← statutes, citations, governs mappings
         │
-policy/models.py                   ← typed schema (Pydantic)
-policy/green_cross.py              ← contract data + statute references
+policy/models.py                      ← typed schema (Pydantic)
+policy/regulations.py                 ← RegulatoryRegistry loader
+policy/green_cross.py                 ← contract data (loads regulations from JSONL)
         │
-tests/test_financial_accuracy.py   ← deductibles, OOP, accumulators
-tests/test_benefit_determination.py ← coverage, limits, dental, pharmacy
-tests/test_regulatory.py           ← MHPAEA, No Surprises Act, COBRA, ERISA
-tests/test_correspondence.py       ← gendered language, state rules, translations
+tests/test_financial_accuracy.py      ← deductibles, OOP, accumulators
+tests/test_benefit_determination.py   ← coverage, limits, dental, pharmacy
+tests/test_regulatory.py              ← MHPAEA, No Surprises Act, COBRA, ERISA
+tests/test_correspondence.py          ← gendered language, state rules, translations
 ```
 
 Every test has a docstring explaining the risk if it fails:
@@ -55,7 +57,15 @@ def test_er_copay_waived_on_admission(self, policy):
 
 ## Regulatory Traceability
 
-Each benefit section traces back to its authorizing statute:
+Regulatory references live in `regulations/base_policies.jsonl` — one statute per line, inspectable with `cat`, `jq`, or `grep`. The `RegulatoryRegistry` loads them at runtime and provides the governs graph to both the policy instance and the explorer.
+
+```bash
+# what governs emergency care?
+grep emergency regulations/base_policies.jsonl | jq .id
+
+# all statutes with CFR references
+jq -r 'select(.references[].cfr != null) | .id' regulations/base_policies.jsonl
+```
 
 | Statute | Citation | Governs |
 |---------|----------|---------|
@@ -76,9 +86,11 @@ See [docs/explorer.md](docs/explorer.md) for details.
 
 ```
 contracts/          source policy documents
+regulations/        externalized regulatory references (JSONL)
 policy/             Pydantic models + contract instances
   models.py         typed contract schema
-  green_cross.py    Green Cross PPO Select data + base policy references
+  regulations.py    RegulatoryRegistry — loads + indexes JSONL
+  green_cross.py    Green Cross PPO Select data
 tests/              risk-annotated test suite
 tools/              explorer visualization server
 ```

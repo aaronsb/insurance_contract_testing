@@ -57,10 +57,13 @@ Clicking a node shows context-specific information:
 
 The explorer is a single-file Python server (`tools/explorer.py`) that:
 
-1. Imports the Green Cross policy instance
-2. Walks the model to extract sections, statutes, and quirk nodes
-3. Parses test files with Python's `ast` module to extract classes, methods, and docstrings
-4. Serves the graph as JSON at `/api/graph`
-5. Serves the visualization (`tools/index.html`) which renders with vis.js
+1. Imports the Green Cross policy instance and the `RegulatoryRegistry`
+2. Builds statute→section edges from `registry.statutes_for()` (driven by `regulations/base_policies.jsonl`)
+3. Walks the policy model to extract section and quirk nodes
+4. Parses test files with Python's `ast` module to extract classes, methods, and docstrings
+5. Serves the graph as JSON at `/api/graph`
+6. Serves the visualization (`tools/index.html`) which renders with vis.js
+
+The governs edges in the graph come directly from the JSONL — add a new regulation or change what it governs, and the explorer reflects it automatically.
 
 No build step. No external dependencies beyond Pydantic (already installed for the models).
