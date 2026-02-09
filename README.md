@@ -2,6 +2,8 @@
 
 Unit tests that audit health insurance policy contracts against their source terms. Each test maps to a specific financial, regulatory, or compliance risk — if it fails, something real breaks: a wrong deductible, a parity violation, a member getting balance-billed.
 
+This project implements the emerging discipline of [computable contracts](https://law.stanford.edu/2021/05/12/computable-contracts-and-insurance-an-introduction/) — expressing insurance policy language as machine-executable code that can be tested, verified, and traced back to its authorizing statutes. Rather than relying on proprietary platforms, it uses standard Python tooling (Pydantic + pytest) to make contract terms inspectable and verifiable.
+
 ![Policy Explorer](docs/media/2026-02-09_15-44.png)
 
 ## Quick Start
@@ -94,3 +96,32 @@ policy/             Pydantic models + contract instances
 tests/              risk-annotated test suite
 tools/              explorer visualization server
 ```
+
+## Background & References
+
+This approach draws from several converging disciplines in insurance technology, legal informatics, and software engineering.
+
+### Computable Contracts
+
+The idea of expressing insurance contracts as executable code rather than natural language documents. This enables automated coverage checks, risk analysis, and compliance verification.
+
+- [Computable Contracts and Insurance: An Introduction](https://law.stanford.edu/2021/05/12/computable-contracts-and-insurance-an-introduction/) — Stanford CodeX introduction to expressing insurance policies as machine-executable code
+- [Automating Risk Analysis with Computable Contracts](https://law.stanford.edu/2022/01/18/automating-risk-analysis-in-corporate-insurance-portfolios-with-computable-contracts/) — AXA's Raphael Ancellin (CodeX Fellow) on achieving near-100% accuracy in automated portfolio risk analysis using contracts-as-code
+- [Can the Insurance Industry Afford to Ignore Computable Contracts?](https://www.axa.com/en/insights/can-the-insurance-industry-afford-to-ignore-computable-contracts) — AXA's perspective on digitally standardized, machine-readable insurance agreements
+
+### Standards & Tooling
+
+Open initiatives working on machine-readable contract formats and interoperable insurance APIs.
+
+- [Accord Project — Cicero](https://accordproject.org/projects/cicero/) — Linux Foundation templating system that converts contract text into structured, machine-readable objects with executable business logic
+- [Open Insurance Initiative (OPIN)](https://openinsurance.io/) — Industry consortium (61+ companies) developing open API standards and interoperable data formats for insurance
+
+### How This Project Fits
+
+| Concept | Industry Equivalent | This Project |
+|---------|-------------------|--------------|
+| Product modeling | Guidewire, Duck Creek | `policy/models.py` — typed Pydantic schema |
+| Computable contracts | AXA Contract Studio, Stanford CodeX | `policy/green_cross.py` — contract as executable data |
+| Regulatory traceability | Manual compliance audits | `regulations/base_policies.jsonl` — statute→section graph |
+| Coverage verification | Enterprise test platforms | `tests/` — risk-annotated pytest assertions |
+| Policy-as-code | Cloud infrastructure PaC | `test_regulatory.py` — statutes enforced as tests |
