@@ -6,7 +6,7 @@
 |---|---|
 | Plan Name | Green Cross PPO Select |
 | Policy Number | GCX-2025-PPO-4417 |
-| Group Number | BNO-00382 |
+| Group Number | GCX-00382 |
 | Effective Date | 2025-01-01 |
 | Plan Year | January 1 – December 31 |
 | Coverage Tier | Employee + Family |

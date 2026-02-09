@@ -1,4 +1,4 @@
-# BNO — Risk-Based Contract Verification
+# Risk-Based Contract Verification
 
 Unit tests that audit health insurance policy contracts against their source terms. Each test maps to a specific financial, regulatory, or compliance risk — if it fails, something real breaks: a wrong deductible, a parity violation, a member getting balance-billed.
 
