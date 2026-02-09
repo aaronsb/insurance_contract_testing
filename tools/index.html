@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Green Cross — Policy Explorer</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2333;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-dim: #8b949e;
+    --amber: #f59e0b;
+    --blue: #58a6ff;
+    --red: #f85149;
+    --orange: #f0883e;
+    --purple: #bc8cff;
+    --green: #3fb950;
+    --yellow: #d29922;
+    --cyan: #39d2c0;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+  }
+
+  /* ---- sidebar ---- */
+  #sidebar {
+    width: 260px;
+    min-width: 260px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    z-index: 10;
+  }
+
+  #sidebar h1 {
+    font-size: 15px;
+    font-weight: 600;
+    padding: 16px 16px 4px;
+    letter-spacing: 0.02em;
+  }
+
+  #sidebar h1 span { color: var(--green); }
+
+  #sidebar .subtitle {
+    padding: 0 16px 12px;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  .sidebar-section {
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  .sidebar-section h3 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 3px 0;
+    font-size: 13px;
+  }
+
+  .stat-row .val {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* legend */
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    cursor: pointer;
+    font-size: 13px;
+    opacity: 1;
+    transition: opacity 0.15s;
+  }
+
+  .legend-item.dimmed { opacity: 0.3; }
+
+  .legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .legend-dot.circle { border-radius: 50%; }
+  .legend-dot.diamond { transform: rotate(45deg); width: 10px; height: 10px; }
+  .legend-dot.triangle {
+    width: 0; height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-bottom: 12px solid var(--yellow);
+    background: none !important;
+    border-radius: 0;
+  }
+
+  /* ---- graph container ---- */
+  #graph-container {
+    flex: 1;
+    position: relative;
+  }
+
+  #graph { width: 100%; height: 100%; }
+
+  #graph canvas { outline: none; }
+
+  /* ---- detail panel ---- */
+  #detail {
+    width: 0;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    overflow-y: auto;
+    transition: width 0.2s ease;
+    white-space: nowrap;
+  }
+
+  #detail.open {
+    width: 380px;
+    min-width: 380px;
+    white-space: normal;
+  }
+
+  #detail-inner { padding: 20px; }
+
+  #detail .close-btn {
+    float: right;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 20px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0 4px;
+  }
+
+  #detail .close-btn:hover { color: var(--text); }
+
+  #detail .node-type {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 2px 8px;
+    border-radius: 3px;
+    display: inline-block;
+    margin-bottom: 8px;
+  }
+
+  #detail .node-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  #detail .node-subtitle {
+    color: var(--text-dim);
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+
+  #detail .section-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    margin: 16px 0 6px;
+  }
+
+  #detail .test-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 6px;
+  }
+
+  #detail .test-item .name {
+    font-size: 12px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    color: var(--cyan);
+    margin-bottom: 4px;
+    word-break: break-all;
+  }
+
+  #detail .test-item .risk {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.4;
+  }
+
+  #detail .connected-list {
+    list-style: none;
+    padding: 0;
+  }
+
+  #detail .connected-list li {
+    padding: 4px 0;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--blue);
+  }
+
+  #detail .connected-list li:hover { text-decoration: underline; }
+
+  .risk-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .risk-financial   { background: rgba(248,81,73,0.15); color: var(--red); }
+  .risk-coverage    { background: rgba(240,136,62,0.15); color: var(--orange); }
+  .risk-regulatory  { background: rgba(188,140,255,0.15); color: var(--purple); }
+  .risk-correspondence { background: rgba(63,185,80,0.15); color: var(--green); }
+
+  /* tooltip override */
+  div.vis-tooltip {
+    background: var(--surface2) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 6px !important;
+    padding: 8px 12px !important;
+    font-size: 12px !important;
+    font-family: inherit !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important;
+    max-width: 300px !important;
+    white-space: pre-wrap !important;
+  }
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <h1><span>&#9679;</span> Green Cross</h1>
+  <div class="subtitle">Policy Contract Explorer</div>
+
+  <div class="sidebar-section" id="stats-section">
+    <h3>Coverage</h3>
+    <div id="stats"></div>
+  </div>
+
+  <div class="sidebar-section">
+    <h3>Legend</h3>
+    <div id="legend"></div>
+  </div>
+
+  <div class="sidebar-section">
+    <h3>Keyboard</h3>
+    <div style="font-size:12px;color:var(--text-dim);line-height:1.8">
+      Click node → details<br>
+      Click canvas → deselect<br>
+      Scroll → zoom<br>
+      Drag → pan<br>
+      <kbd style="background:var(--surface2);padding:1px 5px;border-radius:3px;border:1px solid var(--border)">F</kbd> → fit graph
+    </div>
+  </div>
+</div>
+
+<div id="graph-container">
+  <div id="graph"></div>
+</div>
+
+<div id="detail">
+  <div id="detail-inner"></div>
+</div>
+
+<script src="https://unpkg.com/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+<script>
+const COLORS = {
+  statute:             '#f59e0b',
+  section:             '#58a6ff',
+  risk_financial:      '#f85149',
+  risk_coverage:       '#f0883e',
+  risk_regulatory:     '#bc8cff',
+  risk_correspondence: '#3fb950',
+  quirk:               '#d29922',
+};
+
+const TYPE_LABELS = {
+  statute: 'Statutes',
+  section: 'Sections',
+  risk_financial: 'Tests — Financial',
+  risk_coverage: 'Tests — Coverage',
+  risk_regulatory: 'Tests — Regulatory',
+  risk_correspondence: 'Tests — Correspondence',
+  quirk: 'Network Quirks',
+};
+
+const TYPE_SHAPES = {
+  statute: 'diamond',
+  section: 'dot',
+  risk_financial: 'box',
+  risk_coverage: 'box',
+  risk_regulatory: 'box',
+  risk_correspondence: 'box',
+  quirk: 'triangle',
+};
+
+const EDGE_COLORS = {
+  governs:   'rgba(245,158,11,0.35)',
+  tested_by: 'rgba(88,166,255,0.25)',
+  affects:   'rgba(210,153,34,0.30)',
+};
+
+let graphData = null;
+let network = null;
+let activeFilters = new Set(Object.keys(TYPE_LABELS));
+
+async function init() {
+  const resp = await fetch('/api/graph');
+  graphData = await resp.json();
+  renderStats(graphData.stats);
+  renderLegend();
+  renderGraph();
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'f' || e.key === 'F') network?.fit({ animation: true });
+  });
+}
+
+function renderStats(s) {
+  document.getElementById('stats').innerHTML = `
+    <div class="stat-row"><span>Statutes</span><span class="val">${s.statutes}</span></div>
+    <div class="stat-row"><span>Policy sections</span><span class="val">${s.sections}</span></div>
+    <div class="stat-row"><span>Test classes</span><span class="val">${s.test_classes}</span></div>
+    <div class="stat-row"><span>Total assertions</span><span class="val" style="color:var(--green)">${s.total_tests}</span></div>
+    <div class="stat-row"><span>Network quirks</span><span class="val">${s.quirks}</span></div>
+    <div class="stat-row"><span>Relationships</span><span class="val">${s.edges}</span></div>
+  `;
+}
+
+function renderLegend() {
+  const el = document.getElementById('legend');
+  el.innerHTML = '';
+  for (const [group, label] of Object.entries(TYPE_LABELS)) {
+    const shape = group === 'quirk' ? 'triangle'
+                : group === 'statute' ? 'diamond'
+                : group === 'section' ? 'circle'
+                : '';
+    const item = document.createElement('div');
+    item.className = 'legend-item';
+    item.dataset.group = group;
+    item.innerHTML = `
+      <div class="legend-dot ${shape}" style="background:${COLORS[group]}"></div>
+      <span>${label}</span>
+    `;
+    item.addEventListener('click', () => toggleFilter(group, item));
+    el.appendChild(item);
+  }
+}
+
+function toggleFilter(group, el) {
+  if (activeFilters.has(group)) {
+    activeFilters.delete(group);
+    el.classList.add('dimmed');
+  } else {
+    activeFilters.add(group);
+    el.classList.remove('dimmed');
+  }
+  renderGraph();
+}
+
+function renderGraph() {
+  const container = document.getElementById('graph');
+
+  // filter nodes
+  const visibleNodes = graphData.nodes.filter(n => activeFilters.has(n.group));
+  const visibleIds = new Set(visibleNodes.map(n => n.id));
+
+  // build vis nodes
+  const nodes = visibleNodes.map(n => {
+    const color = COLORS[n.group] || '#666';
+    const shape = TYPE_SHAPES[n.group] || 'dot';
+    const size = n.type === 'statute' ? 22
+               : n.type === 'section' ? 18
+               : n.type === 'quirk' ? 14
+               : 10 + (n.test_count || 0) * 1.2;
+
+    let tooltip = n.label;
+    if (n.title) tooltip = `${n.title}`;
+    if (n.subtitle) tooltip += `\n${n.subtitle}`;
+    if (n.citation) tooltip += `\n${n.citation}`;
+    if (n.risk) tooltip += `\nRisk: ${n.risk}`;
+    if (n.test_count) tooltip += `\n${n.test_count} tests`;
+
+    return {
+      id: n.id,
+      label: n.label,
+      title: tooltip,
+      shape,
+      size,
+      color: {
+        background: color,
+        border: color,
+        highlight: { background: color, border: '#fff' },
+        hover: { background: color, border: '#ccc' },
+      },
+      font: {
+        color: '#e6edf3',
+        size: n.type === 'statute' ? 13 : n.type === 'section' ? 12 : 10,
+        face: '-apple-system, sans-serif',
+        strokeWidth: 3,
+        strokeColor: '#0d1117',
+      },
+      borderWidth: n.type === 'statute' ? 2 : 1,
+      _raw: n,
+    };
+  });
+
+  // filter edges to only those connecting visible nodes
+  const edges = graphData.edges
+    .filter(e => visibleIds.has(e.from) && visibleIds.has(e.to))
+    .map((e, i) => ({
+      id: `e${i}`,
+      from: e.from,
+      to: e.to,
+      color: { color: EDGE_COLORS[e.type] || 'rgba(255,255,255,0.12)' },
+      width: e.type === 'governs' ? 2 : 1,
+      arrows: { to: { enabled: true, scaleFactor: 0.5 } },
+      smooth: { type: 'continuous', roundness: 0.2 },
+    }));
+
+  const data = {
+    nodes: new vis.DataSet(nodes),
+    edges: new vis.DataSet(edges),
+  };
+
+  const options = {
+    physics: {
+      solver: 'forceAtlas2Based',
+      forceAtlas2Based: {
+        gravitationalConstant: -40,
+        centralGravity: 0.008,
+        springLength: 120,
+        springConstant: 0.04,
+        damping: 0.4,
+      },
+      stabilization: { iterations: 200, fit: true },
+    },
+    interaction: {
+      hover: true,
+      tooltipDelay: 150,
+      hideEdgesOnDrag: true,
+      multiselect: false,
+    },
+    layout: { improvedLayout: true },
+  };
+
+  network = new vis.Network(container, data, options);
+
+  network.on('click', params => {
+    if (params.nodes.length > 0) {
+      const nodeId = params.nodes[0];
+      const raw = visibleNodes.find(n => n.id === nodeId);
+      if (raw) showDetail(raw);
+    } else {
+      closeDetail();
+    }
+  });
+
+  network.once('stabilizationIterationsDone', () => {
+    network.fit({ animation: { duration: 400, easingFunction: 'easeInOutQuad' } });
+  });
+}
+
+function showDetail(node) {
+  const panel = document.getElementById('detail');
+  const inner = document.getElementById('detail-inner');
+  panel.classList.add('open');
+
+  const color = COLORS[node.group] || '#666';
+  let html = `<button class="close-btn" onclick="closeDetail()">&times;</button>`;
+
+  // type badge
+  const typeLabel = node.type.charAt(0).toUpperCase() + node.type.slice(1);
+  html += `<div class="node-type" style="background:${color}22;color:${color}">${typeLabel}</div>`;
+  html += `<div class="node-title">${node.label}</div>`;
+
+  if (node.type === 'statute') {
+    html += `<div class="node-subtitle">${node.title || ''}</div>`;
+    if (node.subtitle) html += `<p style="margin-bottom:8px">${node.subtitle}</p>`;
+    if (node.citation) html += `<p style="font-family:monospace;font-size:12px;color:var(--text-dim)">${node.citation}</p>`;
+
+    // connected sections
+    const connected = graphData.edges
+      .filter(e => e.from === node.id && e.type === 'governs')
+      .map(e => graphData.nodes.find(n => n.id === e.to))
+      .filter(Boolean);
+    if (connected.length) {
+      html += `<div class="section-label">Governs</div><ul class="connected-list">`;
+      connected.forEach(n => {
+        html += `<li onclick="navigateTo('${n.id}')">${n.label}</li>`;
+      });
+      html += `</ul>`;
+    }
+  }
+
+  else if (node.type === 'section') {
+    // governing statutes
+    const statutes = graphData.edges
+      .filter(e => e.to === node.id && e.type === 'governs')
+      .map(e => graphData.nodes.find(n => n.id === e.from))
+      .filter(Boolean);
+    if (statutes.length) {
+      html += `<div class="section-label">Governed by</div><ul class="connected-list">`;
+      statutes.forEach(n => {
+        html += `<li onclick="navigateTo('${n.id}')">${n.label} — ${n.title || ''}</li>`;
+      });
+      html += `</ul>`;
+    }
+
+    // test classes
+    const tests = graphData.edges
+      .filter(e => e.from === node.id && e.type === 'tested_by')
+      .map(e => graphData.nodes.find(n => n.id === e.to))
+      .filter(Boolean);
+    if (tests.length) {
+      const totalTests = tests.reduce((a, t) => a + (t.test_count || 0), 0);
+      html += `<div class="section-label">Verified by (${totalTests} tests)</div><ul class="connected-list">`;
+      tests.forEach(n => {
+        const rc = n.risk_category || '';
+        html += `<li onclick="navigateTo('${n.id}')">
+          ${n.label} <span class="risk-badge risk-${rc}">${rc}</span>
+          <span style="color:var(--text-dim)"> (${n.test_count})</span>
+        </li>`;
+      });
+      html += `</ul>`;
+    }
+
+    // quirks
+    const quirks = graphData.edges
+      .filter(e => e.to === node.id && e.type === 'affects')
+      .map(e => graphData.nodes.find(n => n.id === e.from))
+      .filter(Boolean);
+    if (quirks.length) {
+      html += `<div class="section-label">Known Quirks</div>`;
+      quirks.forEach(q => {
+        html += `<div class="test-item" style="cursor:pointer" onclick="navigateTo('${q.id}')">
+          <div class="name" style="color:var(--yellow)">${q.label}</div>
+          <div class="risk">${q.risk || ''}</div>
+        </div>`;
+      });
+    }
+  }
+
+  else if (node.type === 'test') {
+    const rc = node.risk_category || '';
+    html += `<div class="node-subtitle">
+      <span class="risk-badge risk-${rc}">${rc} risk</span>
+      &nbsp; ${node.test_count} tests
+    </div>`;
+    if (node.docstring) html += `<p style="color:var(--text-dim);margin-bottom:12px;font-size:12px">${node.docstring}</p>`;
+
+    // section link
+    const sectionEdge = graphData.edges.find(e => e.to === node.id && e.type === 'tested_by');
+    if (sectionEdge) {
+      const sec = graphData.nodes.find(n => n.id === sectionEdge.from);
+      if (sec) {
+        html += `<div class="section-label">Verifies</div>
+          <ul class="connected-list"><li onclick="navigateTo('${sec.id}')">${sec.label}</li></ul>`;
+      }
+    }
+
+    // individual tests
+    if (node.tests && node.tests.length) {
+      html += `<div class="section-label">Assertions</div>`;
+      node.tests.forEach(t => {
+        html += `<div class="test-item">
+          <div class="name">${t.name}</div>
+          ${t.risk ? `<div class="risk">${t.risk}</div>` : ''}
+        </div>`;
+      });
+    }
+  }
+
+  else if (node.type === 'quirk') {
+    html += `<div class="node-subtitle" style="color:var(--yellow)">${node.description || ''}</div>`;
+    if (node.risk) {
+      html += `<div class="section-label">Risk</div>
+        <p style="font-size:13px;margin-bottom:12px">${node.risk}</p>`;
+    }
+    if (node.affected_services && node.affected_services.length) {
+      html += `<div class="section-label">Affected services</div>
+        <p style="font-size:13px;color:var(--text-dim)">${node.affected_services.join(', ')}</p>`;
+    }
+
+    // connected sections
+    const sections = graphData.edges
+      .filter(e => e.from === node.id && e.type === 'affects')
+      .map(e => graphData.nodes.find(n => n.id === e.to))
+      .filter(Boolean);
+    if (sections.length) {
+      html += `<div class="section-label">Affects</div><ul class="connected-list">`;
+      sections.forEach(n => {
+        html += `<li onclick="navigateTo('${n.id}')">${n.label}</li>`;
+      });
+      html += `</ul>`;
+    }
+  }
+
+  inner.innerHTML = html;
+}
+
+function closeDetail() {
+  document.getElementById('detail').classList.remove('open');
+  if (network) network.unselectAll();
+}
+
+function navigateTo(nodeId) {
+  network.selectNodes([nodeId]);
+  network.focus(nodeId, { scale: 1.2, animation: { duration: 400, easingFunction: 'easeInOutQuad' } });
+  const raw = graphData.nodes.find(n => n.id === nodeId);
+  if (raw) showDetail(raw);
+}
+
+init();
+</script>
+</body>
+</html>
